@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>내일 뭐하지? - 미니멀 할 일 플래너</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Inter & Noto Sans KR Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Noto Sans KR', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            900: '#1e3a8a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .checkbox-anim {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .completed-strike {
+            text-decoration: line-through;
+            opacity: 0.55;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen transition-colors duration-300 flex justify-center items-center p-0 sm:p-4">
+
+    <!-- Smartphone Frame Viewport Container -->
+    <div class="w-full sm:max-w-md h-screen sm:h-[844px] bg-white dark:bg-slate-900 sm:rounded-[40px] shadow-2xl flex flex-col overflow-hidden relative border-0 sm:border-8 border-slate-800 dark:border-slate-800">
+        
+        <!-- Splash / Main Landing Screen Overlay (SKETCHON What Next?) -->
+        <div id="landing-screen" class="absolute inset-0 z-50 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 text-white flex flex-col justify-between p-7 transition-all duration-500 ease-in-out">
+            <!-- Top Brand Header -->
+            <div class="pt-6 flex justify-between items-center">
+                <span class="text-xs font-semibold tracking-widest uppercase text-blue-400 bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+                    SKETCHON
+                </span>
+                <span class="text-[11px] text-slate-500 font-medium">v1.0</span>
+            </div>
+
+            <!-- Hero Title Section -->
+            <div class="my-auto py-8">
+                <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-2xl shadow-lg shadow-blue-500/30 mb-6">
+                    <i class="fa-solid fa-sparkles text-white"></i>
+                </div>
+                <p class="text-xs font-semibold text-blue-400 uppercase tracking-widest mb-2">SKETCHON PRODUCTIVITY</p>
+                <h1 class="text-4xl font-black tracking-tight leading-none text-white mb-3">
+                    What Next?
+                </h1>
+                <p class="text-slate-400 text-xs sm:text-sm leading-relaxed font-normal">
+                    오늘 저녁 3분 계획으로<br>내일 하루를 가볍고 명확하게 시작하세요.
+                </p>
+            </div>
+
+            <!-- Action Area (Login Placeholder & Entrance Button) -->
+            <div class="space-y-3 pb-4">
+                <div class="p-3 bg-slate-800/50 border border-slate-700/50 rounded-2xl flex items-center justify-between text-xs text-slate-400">
+                    <span class="flex items-center gap-2">
+                        <i class="fa-solid fa-user-lock text-slate-500"></i> 로그인 기능 준비 중
+                    </span>
+                    <span class="text-[10px] bg-blue-500/20 text-blue-300 font-medium px-2 py-0.5 rounded-md">Guest Mode</span>
+                </div>
+                <button onclick="enterApp()" class="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.98] text-white font-bold rounded-2xl text-sm shadow-xl shadow-blue-600/30 transition duration-200 flex items-center justify-center gap-2">
+                    <span>앱 시작하기</span>
+                    <i class="fa-solid fa-arrow-right text-xs"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Top Status Bar Simulation -->
+        <div class="pt-3 px-6 pb-2 flex justify-between items-center text-xs text-slate-400 font-medium select-none bg-inherit z-20">
+            <span id="current-time">09:41</span>
+            <div class="flex items-center gap-2">
+                <span id="streak-badge" class="bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 text-[10px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                    <i class="fa-solid fa-fire text-amber-500"></i> <span id="streak-count">3</span>일째 작성중
+                </span>
+            </div>
+        </div>
+
+        <!-- Header / Mode Switcher -->
+        <header class="px-5 py-3 flex flex-col gap-3 border-b border-slate-100 dark:border-slate-800/80 bg-white/80 dark:bg-slate-900/80 backdrop-blur z-10">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2" id="app-title">
+                        <span>오늘 할 일</span>
+                    </h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5" id="mode-subtitle">체크만 누르며 당일 업무에 몰입하세요</p>
+                </div>
+                <!-- Theme Toggle Button -->
+                <button id="theme-toggle-btn" onclick="toggleDarkMode()" class="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+                    <i class="fa-solid fa-moon text-sm dark:hidden"></i>
+                    <i class="fa-solid fa-sun text-sm hidden dark:block text-amber-400"></i>
+                </button>
+            </div>
+
+            <!-- Mode Selector Switch Tab (오늘 모드 vs 내일 모드) -->
+            <div class="grid grid-cols-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl relative">
+                <button id="tab-today" onclick="switchMode('today')" class="py-2 text-sm font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-700 shadow-sm">
+                    <i class="fa-solid fa-square-check"></i> 오늘 실행
+                </button>
+                <button id="tab-tomorrow" onclick="switchMode('tomorrow')" class="py-2 text-sm font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">
+                    <i class="fa-solid fa-pen-to-square"></i> 내일 계획
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Task List Scroll Area -->
+        <main class="flex-1 overflow-y-auto px-5 py-4 hide-scrollbar space-y-4" id="main-content-area">
+            
+            <!-- Overall Progress Summary Banner -->
+            <div id="progress-summary-card" class="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl p-4 text-white shadow-lg shadow-blue-500/15">
+                <div class="flex justify-between items-end mb-2">
+                    <div>
+                        <span class="text-xs font-medium opacity-80" id="summary-date-label">오늘의 종합 실행률</span>
+                        <h3 class="text-xl font-bold mt-0.5" id="summary-progress-text">0% 완료</h3>
+                    </div>
+                    <span class="text-xs bg-white/20 px-2.5 py-1 rounded-full font-medium" id="summary-count-label">0/0 항목 완료</span>
+                </div>
+                <!-- Progress Bar -->
+                <div class="w-full bg-black/20 h-2.5 rounded-full overflow-hidden">
+                    <div id="summary-progress-bar" class="bg-white h-full transition-all duration-500 rounded-full" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Projects & Subtasks List Container -->
+            <div id="project-list-container" class="space-y-4 pb-20">
+                <!-- Dynamically populated via JavaScript -->
+            </div>
+
+            <!-- Empty State Helper -->
+            <div id="empty-state" class="hidden flex-col items-center justify-center py-12 text-center text-slate-400">
+                <div class="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-2xl mb-3 text-slate-400">
+                    <i class="fa-solid fa-clipboard-list"></i>
+                </div>
+                <p class="font-medium text-slate-600 dark:text-slate-300" id="empty-title">등록된 할 일이 없습니다</p>
+                <p class="text-xs mt-1 text-slate-400 max-w-[220px]" id="empty-desc">'내일 계획' 탭에서 내일 할 일과 세부 프로젝트를 추가해보세요!</p>
+            </div>
+
+        </main>
+
+        <!-- Floating Add Button Bar (Active in Tomorrow Planning Mode) -->
+        <div id="tomorrow-input-bar" class="p-4 bg-white/95 dark:bg-slate-900/95 border-t border-slate-100 dark:border-slate-800 backdrop-blur absolute bottom-0 left-0 right-0 z-20 hidden transition-all duration-300 flex items-center gap-2">
+            <button onclick="loadRecurringTemplates()" class="flex-1 py-3 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/80 text-indigo-600 dark:text-indigo-400 font-semibold rounded-2xl text-xs flex items-center justify-center gap-1.5 border border-indigo-200/50 dark:border-indigo-800/50 transition">
+                <i class="fa-solid fa-rotate-right"></i> 루틴 불러오기
+            </button>
+            <button onclick="openAddProjectModal()" class="flex-[2] py-3 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-semibold rounded-2xl shadow-lg shadow-blue-500/25 text-xs sm:text-sm flex items-center justify-center gap-1.5 transition">
+                <i class="fa-solid fa-plus"></i> 새 프로젝트 추가
+            </button>
+        </div>
+
+        <!-- Add Project Slide-Up Modal -->
+        <div id="add-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300 p-0 sm:p-4">
+            <div id="modal-card" class="bg-white dark:bg-slate-900 w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl transition-transform duration-300 transform translate-y-full max-h-[90vh] overflow-y-auto hide-scrollbar border border-slate-100 dark:border-slate-800">
+                
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-folder-plus text-blue-500"></i> 새 프로젝트 작성
+                    </h3>
+                    <button onclick="closeAddProjectModal()" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 flex items-center justify-center">
+                        <i class="fa-solid fa-xmark text-sm"></i>
+                    </button>
+                </div>
+
+                <div class="space-y-4">
+                    <!-- Project Emoji Picker -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">대표 아이콘 선택</label>
+                        <div id="emoji-picker" class="flex items-center gap-1.5 overflow-x-auto pb-1 hide-scrollbar">
+                            <button type="button" onclick="selectEmoji('💻')" class="emoji-btn text-base p-2 rounded-xl bg-blue-50 dark:bg-slate-800 border-2 border-blue-500 transition-all">💻</button>
+                            <button type="button" onclick="selectEmoji('🏃')" class="emoji-btn text-base p-2 rounded-xl bg-slate-50 dark:bg-slate-800 border-2 border-transparent hover:border-slate-300 transition-all">🏃</button>
+                            <button type="button" onclick="selectEmoji('📝')" class="emoji-btn text-base p-2 rounded-xl bg-slate-50 dark:bg-slate-800 border-2 border-transparent hover:border-slate-300 transition-all">📝</button>
+                            <button type="button" onclick="selectEmoji('🎨')" class="emoji-btn text-base p-2 rounded-xl bg-slate-50 dark:bg-slate-800 border-2 border-transparent hover:border-slate-300 transition-all">🎨</button>
+                            <button type="button" onclick="selectEmoji('📚')" class="emoji-btn text-base p-2 rounded-xl bg-slate-50 dark:bg-slate-800 border-2 border-transparent hover:border-slate-300 transition-all">📚</button>
+                            <button type="button" onclick="selectEmoji('🛒')" class="emoji-btn text-base p-2 rounded-xl bg-slate-50 dark:bg-slate-800 border-2 border-transparent hover:border-slate-300 transition-all">🛒</button>
+                            <button type="button" onclick="selectEmoji('☕')" class="emoji-btn text-base p-2 rounded-xl bg-slate-50 dark:bg-slate-800 border-2 border-transparent hover:border-slate-300 transition-all">☕</button>
+                            <button type="button" onclick="selectEmoji('💼')" class="emoji-btn text-base p-2 rounded-xl bg-slate-50 dark:bg-slate-800 border-2 border-transparent hover:border-slate-300 transition-all">💼</button>
+                            <button type="button" onclick="selectEmoji('🎯')" class="emoji-btn text-base p-2 rounded-xl bg-slate-50 dark:bg-slate-800 border-2 border-transparent hover:border-slate-300 transition-all">🎯</button>
+                            <button type="button" onclick="selectEmoji('🔥')" class="emoji-btn text-base p-2 rounded-xl bg-slate-50 dark:bg-slate-800 border-2 border-transparent hover:border-slate-300 transition-all">🔥</button>
+                        </div>
+                    </div>
+
+                    <!-- Project Title Input -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">프로젝트명</label>
+                        <input type="text" id="input-project-title" placeholder="예: 앱 디자인 리뉴얼, 오운완" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+
+                    <!-- Recurring Schedule Selector -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">반복 일정 설정</label>
+                        <select id="input-project-repeat" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="none">🔄 반복 없음 (단발성)</option>
+                            <option value="daily">☀️ 매일 반복 (주중 + 주말)</option>
+                            <option value="weekdays">💼 주중 반복 (월~금요일만)</option>
+                            <option value="weekends">☕ 주말 반복 (토~일요일만)</option>
+                            <option value="weekly">📅 매주 반복</option>
+                            <option value="monthly">🗓️ 매월 반복</option>
+                        </select>
+                    </div>
+
+                    <!-- Subtask Inputs -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">세부 할 일 (Subtasks)</label>
+                        <div id="subtask-inputs-container" class="space-y-2 max-h-36 overflow-y-auto pr-1">
+                            <div class="flex items-center gap-2">
+                                <input type="text" placeholder="세부 업무 입력 1" class="subtask-input flex-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500">
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <input type="text" placeholder="세부 업무 입력 2" class="subtask-input flex-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500">
+                            </div>
+                        </div>
+                        <button type="button" onclick="addMoreSubtaskInput()" class="mt-2 text-xs text-blue-600 dark:text-blue-400 font-semibold hover:underline flex items-center gap-1">
+                            <i class="fa-solid fa-plus text-[10px]"></i> 세부 항목 더 추가
+                        </button>
+                    </div>
+
+                    <!-- Submit Buttons -->
+                    <div class="pt-2 flex gap-2">
+                        <button onclick="closeAddProjectModal()" class="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold text-xs hover:bg-slate-200 dark:hover:bg-slate-700 transition">취소</button>
+                        <button onclick="saveNewProject()" class="flex-1 py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-xs hover:bg-blue-700 transition shadow-md shadow-blue-500/20">저장하기</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Notification Toast Notification -->
+        <div id="toast" class="absolute top-16 left-1/2 -translate-x-1/2 bg-slate-900/90 dark:bg-slate-100/90 text-white dark:text-slate-900 px-4 py-2 rounded-full text-xs font-medium shadow-xl opacity-0 transition-all duration-300 pointer-events-none z-50 flex items-center gap-2">
+            <i class="fa-solid fa-circle-check text-emerald-400 dark:text-emerald-600"></i>
+            <span id="toast-message">알림 메시지</span>
+        </div>
+
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'tomorrow_do_app_data_v2';
+        let selectedEmoji = '💻';
+
+        // Initial State Data with Fallback
+        let appState = {
+            streak: 3,
+            currentMode: 'today',
+            todayProjects: [
+                {
+                    id: 'proj_1',
+                    title: '💻 앱 디자인 리뉴얼',
+                    repeat: 'weekdays',
+                    subtasks: [
+                        { id: 'sub_1', text: '메인 스크린 UI 와이어프레임 설계', completed: true },
+                        { id: 'sub_2', text: '다크모드 컬러 팔레트 정리', completed: false }
+                    ]
+                }
+            ],
+            tomorrowProjects: [
+                {
+                    id: 'proj_2',
+                    title: '🏃 오운완 헬스장 가기',
+                    repeat: 'daily',
+                    subtasks: [
+                        { id: 'sub_3', text: '하체 운동 45분', completed: false },
+                        { id: 'sub_4', text: '유산소 런닝머신 20분', completed: false }
+                    ]
+                }
+            ]
+        };
+
+        // Load saved state from LocalStorage if exists
+        try {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                appState = JSON.parse(saved);
+            }
+        } catch (e) {
+            console.error('Failed to load state', e);
+        }
+
+        function saveState() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+            } catch (e) {
+                console.error('Failed to save state', e);
+            }
+            render();
+        }
+
+        function selectEmoji(emoji) {
+            selectedEmoji = emoji;
+            const buttons = document.querySelectorAll('.emoji-btn');
+            buttons.forEach(btn => {
+                if (btn.innerText.includes(emoji)) {
+                    btn.classList.add('bg-blue-50', 'dark:bg-slate-800', 'border-blue-500');
+                    btn.classList.remove('bg-slate-50', 'border-transparent');
+                } else {
+                    btn.classList.remove('bg-blue-50', 'dark:bg-slate-800', 'border-blue-500');
+                    btn.classList.add('bg-slate-50', 'border-transparent');
+                }
+            });
+        }
+
+        function updateClock() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const clockEl = document.getElementById('current-time');
+            if (clockEl) clockEl.innerText = `${hours}:${minutes}`;
+        }
+        setInterval(updateClock, 1000);
+
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+            showToast(document.documentElement.classList.contains('dark') ? '다크 모드로 변경되었습니다' : '라이트 모드로 변경되었습니다');
+        }
+
+        function switchMode(mode) {
+            appState.currentMode = mode;
+            
+            const tabToday = document.getElementById('tab-today');
+            const tabTomorrow = document.getElementById('tab-tomorrow');
+            const inputBar = document.getElementById('tomorrow-input-bar');
+            const appTitle = document.getElementById('app-title');
+            const modeSubtitle = document.getElementById('mode-subtitle');
+
+            if (mode === 'today') {
+                tabToday.className = "py-2 text-sm font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-700 shadow-sm";
+                tabTomorrow.className = "py-2 text-sm font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200";
+                
+                inputBar.classList.add('hidden');
+                appTitle.innerHTML = '<span>오늘 할 일</span>';
+                modeSubtitle.innerText = '체크만 누르며 당일 업무에 몰입하세요';
+            } else {
+                tabTomorrow.className = "py-2 text-sm font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-700 shadow-sm";
+                tabToday.className = "py-2 text-sm font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200";
+                
+                inputBar.classList.remove('hidden');
+                appTitle.innerHTML = '<span>내일 뭐하지?</span>';
+                modeSubtitle.innerText = '미리 편하게 내일 프로젝트와 업무를 추가해보세요';
+            }
+
+            saveState();
+        }
+
+        function toggleSubtask(projId, subId) {
+            const projects = appState.currentMode === 'today' ? appState.todayProjects : appState.tomorrowProjects;
+            const proj = projects.find(p => p.id === projId);
+            if (!proj) return;
+
+            const sub = proj.subtasks.find(s => s.id === subId);
+            if (!sub) return;
+
+            sub.completed = !sub.completed;
+            if (sub.completed) {
+                showToast(`'${sub.text}' 완료! 👍`);
+            }
+            saveState();
+        }
+
+        function addSubtaskInline(projId) {
+            const inputEl = document.getElementById(`inline-input-${projId}`);
+            if (!inputEl) return;
+            const text = inputEl.value.trim();
+            if (!text) return;
+
+            const projects = appState.currentMode === 'today' ? appState.todayProjects : appState.tomorrowProjects;
+            const proj = projects.find(p => p.id === projId);
+            if (proj) {
+                proj.subtasks.push({
+                    id: 'sub_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                    text: text,
+                    completed: false
+                });
+                inputEl.value = '';
+                saveState();
+            }
+        }
+
+        function deleteProject(projId) {
+            if (appState.currentMode === 'today') {
+                appState.todayProjects = appState.todayProjects.filter(p => p.id !== projId);
+            } else {
+                appState.tomorrowProjects = appState.tomorrowProjects.filter(p => p.id !== projId);
+            }
+            showToast('프로젝트가 삭제되었습니다.');
+            saveState();
+        }
+
+        function openAddProjectModal() {
+            document.getElementById('input-project-title').value = '';
+            document.getElementById('input-project-repeat').value = 'none';
+            selectEmoji('💻');
+            
+            document.getElementById('subtask-inputs-container').innerHTML = `
+                <div class="flex items-center gap-2">
+                    <input type="text" placeholder="세부 업무 입력 1" class="subtask-input flex-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500">
+                </div>
+                <div class="flex items-center gap-2">
+                    <input type="text" placeholder="세부 업무 입력 2" class="subtask-input flex-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500">
+                </div>
+            `;
+
+            const modal = document.getElementById('add-modal');
+            const modalCard = document.getElementById('modal-card');
+            if (modal && modalCard) {
+                modal.classList.remove('opacity-0', 'pointer-events-none');
+                modalCard.classList.remove('translate-y-full');
+            }
+        }
+
+        function closeAddProjectModal() {
+            const modal = document.getElementById('add-modal');
+            const modalCard = document.getElementById('modal-card');
+            if (modal && modalCard) {
+                modal.classList.add('opacity-0', 'pointer-events-none');
+                modalCard.classList.add('translate-y-full');
+            }
+        }
+
+        function addMoreSubtaskInput() {
+            const container = document.getElementById('subtask-inputs-container');
+            const count = container.querySelectorAll('.subtask-input').length + 1;
+            const div = document.createElement('div');
+            div.className = 'flex items-center gap-2';
+            div.innerHTML = `<input type="text" placeholder="세부 업무 입력 ${count}" class="subtask-input flex-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500">`;
+            container.appendChild(div);
+        }
+
+        function saveNewProject() {
+            const rawTitle = document.getElementById('input-project-title').value.trim();
+            const repeatInput = document.getElementById('input-project-repeat').value;
+
+            if (!rawTitle) {
+                showToast('⚠️ 프로젝트명을 입력해 주세요!');
+                return;
+            }
+
+            const fullTitle = `${selectedEmoji} ${rawTitle}`;
+
+            const subInputs = document.querySelectorAll('.subtask-input');
+            const subtasks = [];
+            subInputs.forEach((input, idx) => {
+                const val = input.value.trim();
+                if (val) {
+                    subtasks.push({
+                        id: 'sub_' + Date.now() + '_' + idx,
+                        text: val,
+                        completed: false
+                    });
+                }
+            });
+
+            const newProj = {
+                id: 'proj_' + Date.now(),
+                title: fullTitle,
+                repeat: repeatInput,
+                subtasks: subtasks
+            };
+
+            if (appState.currentMode === 'tomorrow') {
+                appState.tomorrowProjects.push(newProj);
+            } else {
+                appState.todayProjects.push(newProj);
+            }
+
+            closeAddProjectModal();
+            showToast('새 프로젝트가 등록되었습니다!');
+            saveState();
+        }
+
+        function loadRecurringTemplates() {
+            const allProjects = [...appState.todayProjects, ...appState.tomorrowProjects];
+            const recurringItems = allProjects.filter(p => p.repeat && p.repeat !== 'none');
+
+            if (recurringItems.length === 0) {
+                showToast('설정된 반복 프로젝트가 없습니다.');
+                return;
+            }
+
+            let addedCount = 0;
+            recurringItems.forEach(rec => {
+                const exists = appState.tomorrowProjects.some(p => p.title === rec.title);
+                if (!exists) {
+                    appState.tomorrowProjects.push({
+                        id: 'proj_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                        title: rec.title,
+                        repeat: rec.repeat,
+                        subtasks: rec.subtasks.map(s => ({ ...s, id: 'sub_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4), completed: false }))
+                    });
+                    addedCount++;
+                }
+            });
+
+            if (addedCount > 0) {
+                showToast(`${addedCount}개의 반복 루틴을 내일에 불러왔습니다! ⚡`);
+                saveState();
+            } else {
+                showToast('이미 내일 계획에 모두 포함되어 있습니다.');
+            }
+        }
+
+        function render() {
+            document.getElementById('streak-count').innerText = appState.streak;
+            const listContainer = document.getElementById('project-list-container');
+            const emptyState = document.getElementById('empty-state');
+            
+            const projects = appState.currentMode === 'today' ? appState.todayProjects : appState.tomorrowProjects;
+
+            let totalSubtasks = 0;
+            let completedSubtasks = 0;
+
+            projects.forEach(p => {
+                totalSubtasks += p.subtasks.length;
+                completedSubtasks += p.subtasks.filter(s => s.completed).length;
+            });
+
+            const percent = totalSubtasks === 0 ? 0 : Math.round((completedSubtasks / totalSubtasks) * 100);
+
+            document.getElementById('summary-date-label').innerText = appState.currentMode === 'today' ? '오늘의 종합 실행률' : '내일의 계획 준비 현황';
+            document.getElementById('summary-progress-text').innerText = `${percent}% 완료`;
+            document.getElementById('summary-count-label').innerText = `${completedSubtasks}/${totalSubtasks} 세부 항목`;
+            document.getElementById('summary-progress-bar').style.width = `${percent}%`;
+
+            if (projects.length === 0) {
+                listContainer.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                emptyState.classList.add('flex');
+                
+                if (appState.currentMode === 'today') {
+                    document.getElementById('empty-title').innerText = '오늘 예정된 할 일이 없습니다';
+                    document.getElementById('empty-desc').innerText = "상단의 '내일 계획' 탭에서 저녁에 미리 업무를 작성해보세요!";
+                } else {
+                    document.getElementById('empty-title').innerText = '내일 계획이 아직 없습니다';
+                    document.getElementById('empty-desc').innerText = "하단의 '+ 새 프로젝트 추가' 버튼을 눌러 작성하세요!";
+                }
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+                emptyState.classList.remove('flex');
+            }
+
+            listContainer.innerHTML = projects.map(proj => {
+                const projTotal = proj.subtasks.length;
+                const projDone = proj.subtasks.filter(s => s.completed).length;
+                const projPercent = projTotal === 0 ? 0 : Math.round((projDone / projTotal) * 100);
+
+                let repeatBadgeHtml = '';
+                if (proj.repeat === 'daily') {
+                    repeatBadgeHtml = `<span class="bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 text-[10px] font-medium px-2 py-0.5 rounded-full inline-flex items-center gap-1"><i class="fa-solid fa-rotate-right text-[9px]"></i> 매일</span>`;
+                } else if (proj.repeat === 'weekdays') {
+                    repeatBadgeHtml = `<span class="bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 text-[10px] font-medium px-2 py-0.5 rounded-full inline-flex items-center gap-1"><i class="fa-solid fa-briefcase text-[9px]"></i> 주중(월~금)</span>`;
+                } else if (proj.repeat === 'weekends') {
+                    repeatBadgeHtml = `<span class="bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-300 text-[10px] font-medium px-2 py-0.5 rounded-full inline-flex items-center gap-1"><i class="fa-solid fa-mug-hot text-[9px]"></i> 주말(토~일)</span>`;
+                } else if (proj.repeat === 'weekly') {
+                    repeatBadgeHtml = `<span class="bg-purple-50 dark:bg-purple-900/40 text-purple-600 dark:text-purple-300 text-[10px] font-medium px-2 py-0.5 rounded-full inline-flex items-center gap-1"><i class="fa-solid fa-calendar-week text-[9px]"></i> 매주</span>`;
+                } else if (proj.repeat === 'monthly') {
+                    repeatBadgeHtml = `<span class="bg-amber-50 dark:bg-amber-900/40 text-amber-600 dark:text-amber-300 text-[10px] font-medium px-2 py-0.5 rounded-full inline-flex items-center gap-1"><i class="fa-solid fa-calendar-days text-[9px]"></i> 매월</span>`;
+                }
+
+                return `
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700/60 transition duration-200">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="flex-1 pr-2">
+                                <div class="flex items-center gap-2 mb-1 flex-wrap">
+                                    <h2 class="font-bold text-slate-800 dark:text-slate-100 text-base leading-tight">${escapeHtml(proj.title)}</h2>
+                                    ${repeatBadgeHtml}
+                                </div>
+                                <p class="text-[11px] text-slate-400 flex items-center gap-1.5">
+                                    <span>진행도 ${projDone}/${projTotal}</span>
+                                    <span>•</span>
+                                    <span class="font-semibold text-blue-600 dark:text-blue-400">${projPercent}%</span>
+                                </p>
+                            </div>
+                            <button onclick="deleteProject('${proj.id}')" class="text-slate-300 hover:text-rose-500 transition p-1">
+                                <i class="fa-solid fa-trash-can text-xs"></i>
+                            </button>
+                        </div>
+
+                        <div class="w-full bg-slate-100 dark:bg-slate-700 h-1.5 rounded-full mb-3 overflow-hidden">
+                            <div class="bg-blue-500 dark:bg-blue-400 h-full transition-all duration-300 rounded-full" style="width: ${projPercent}%"></div>
+                        </div>
+
+                        <div class="space-y-1.5 mt-2">
+                            ${proj.subtasks.map(sub => `
+                                <div onclick="toggleSubtask('${proj.id}', '${sub.id}')" class="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/40 cursor-pointer transition select-none group">
+                                    <div class="w-5 h-5 rounded-lg border-2 flex items-center justify-center checkbox-anim ${
+                                        sub.completed 
+                                        ? 'bg-blue-600 border-blue-600 text-white' 
+                                        : 'border-slate-300 dark:border-slate-600 group-hover:border-blue-400'
+                                    }">
+                                        ${sub.completed ? '<i class="fa-solid fa-check text-[10px]"></i>' : ''}
+                                    </div>
+                                    <span class="text-xs font-medium flex-1 ${sub.completed ? 'completed-strike text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-200'}">
+                                        ${escapeHtml(sub.text)}
+                                    </span>
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        ${appState.currentMode === 'tomorrow' ? `
+                            <div class="mt-3 pt-2 border-t border-slate-100 dark:border-slate-700/50 flex items-center gap-2">
+                                <input id="inline-input-${proj.id}" type="text" placeholder="+ 세부 업무 바로 추가 후 엔터" onkeydown="if(event.key==='Enter') addSubtaskInline('${proj.id}')" class="flex-1 text-xs px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-800 dark:text-slate-200">
+                                <button onclick="addSubtaskInline('${proj.id}')" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold">
+                                    추가
+                                </button>
+                            </div>
+                        ` : ''}
+
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').innerText = msg;
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            toast.classList.add('opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 2200);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.innerText = text;
+            return div.innerHTML;
+        }
+
+        function enterApp() {
+            const landing = document.getElementById('landing-screen');
+            if (landing) {
+                landing.classList.add('opacity-0', 'pointer-events-none');
+                setTimeout(() => {
+                    landing.style.display = 'none';
+                }, 500);
+            }
+        }
+
+        window.onload = function() {
+            updateClock();
+            switchMode(appState.currentMode || 'today');
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.classList.add('dark');
+            }
+        };
+    </script>
+</body>
+</html>
